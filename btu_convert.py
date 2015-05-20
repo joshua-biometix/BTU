@@ -58,11 +58,30 @@ def main(argv):
    #   print("Incorrect file format: " + in_file[len(in_file)-4:])
    #   sys.exit(1)
 
+   if  in_file == out_file:
+     print("File/Path <inputfile> and <outputfile> must be different.")
+     sys.exit(1)
+
+
+
    if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
      print("Both <inputfile> and <outputfile> must be valid directories.")
      sys.exit(1)
+
+   if in_file == ".":
+     in_file  = os.getcwd()+"/"
+   if out_file == "." or out_file=='':
+     out_file  = os.getcwd()+"/"
+
+   if in_file[0] != '/':
+     in_file  = os.getcwd()+"/"+in_file
+   if out_file[0] != '/':
+     out_file = os.getcwd()+"/"+out_file
+
+   
+
       
-   if not os.path.isfile(in_file):
+   if not os.path.isfile(in_file) and not os.path.isdir(in_file):
       print("file '"+in_file+ "' does not exist!")
       sys.exit(1)
    convert_options={ 'include_finger_index':{1,2,3,4}   }
