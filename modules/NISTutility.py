@@ -306,9 +306,9 @@ def convertNIST(in_file, image_format, out_file, convert_options={}):
 #   in_file  = os.getcwd()+"/"+in_file
 #   out_file = os.getcwd()+"/"+out_file
 
-   if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
-     print("Both <inputfile> and <outputfile> must be valid directories.")
-     sys.exit(1)
+#   if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
+#     print("Both <inputfile> and <outputfile> must be valid directories.")
+#     sys.exit(1)
 
    if not os.path.isfile(in_file) and not os.path.isdir(in_file):
       print("file '"+in_file+ "' does not exist!")
@@ -319,8 +319,10 @@ def convertNIST(in_file, image_format, out_file, convert_options={}):
       nist_files += [each for each in os.listdir(in_file) if each.endswith('.eft') or each.endswith('an2')]
       for nist_file in nist_files:
 #   in_file_name=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]
-        performConvert(in_file+'/'+nist_file, image_format, out_file+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new.eft", convert_options)
+        performConvert(in_file+'/'+nist_file, image_format, out_file+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
    elif os.path.isfile(in_file):
+      if os.path.isdir(out_file):
+        out_file+=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]+"_new"+in_file[len(in_file)-4:]
       performConvert(in_file, image_format, out_file, convert_options)
 
 
@@ -343,8 +345,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
       except:
           pass
 
-   print in_file_name +" ZZZZZZZZZZZZZZZZZZZZZZZ"
-      
    #Create output directory if does not exist (directory removal just attempted so should not exist unless permissions issue)
    if not os.path.exists(dir_path):
       print("Creating directory "+dir_path)

@@ -6,9 +6,9 @@ Created on Sun Jun 29 22:44:23 2014
 @description: eft/an2 NIST image converter/re-packager using NIST NBIS binaries
         Note: To run this script use:
 
-              python convert_NIST_finger.py -i <input_file>  -f <image_format> [-o <output_file>]
+              python btu_convert.py -i <input_file>  -f <image_format> [-o <output_file>]
 
-              e.g. python convert_NIST_finger.py -i file.eft  -f wsq file_new.eft
+              e.g. python btu_convert.py -i file.eft  -f wsq file_new.eft
               
 """
 
@@ -65,7 +65,7 @@ def main(argv):
 
 
    if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
-     print("Both <inputfile> and <outputfile> must be valid directories.")
+     print("Both <inputfile> and <outputfile> must be valid directories. out_file is "+out_file)
      sys.exit(1)
 
    if in_file == ".":
