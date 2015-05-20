@@ -1,2 +1,0 @@
-# BTU
-Biometrics Transformation Utility
