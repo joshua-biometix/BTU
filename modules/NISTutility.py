@@ -300,7 +300,7 @@ def getRecordCounts(fmt_file):
    return res
 
 
-def convertNIST(in_file, image_format, out_file, convert_options={}):
+def convertNIST(in_source, image_format, out_source, convert_options={}):
    loadConfig()
 
 #   in_file  = os.getcwd()+"/"+in_file
@@ -310,20 +310,20 @@ def convertNIST(in_file, image_format, out_file, convert_options={}):
 #     print("Both <inputfile> and <outputfile> must be valid directories.")
 #     sys.exit(1)
 
-   if not os.path.isfile(in_file) and not os.path.isdir(in_file):
-      print("file '"+in_file+ "' does not exist!")
+   if not os.path.isfile(in_source) and not os.path.isdir(in_source):
+      print("In source '"+in_source+ "' does not exist!")
       sys.exit(1)
 
    nist_files=[]
-   if os.path.isdir(in_file):
-      nist_files += [each for each in os.listdir(in_file) if each.endswith('.eft') or each.endswith('an2')]
+   if os.path.isdir(in_source):
+      nist_files += [each for each in os.listdir(in_source) if each.endswith('.eft') or each.endswith('an2')]
       for nist_file in nist_files:
 #   in_file_name=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]
-        performConvert(in_file+'/'+nist_file, image_format, out_file+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
-   elif os.path.isfile(in_file):
-      if os.path.isdir(out_file):
-        out_file+=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]+"_new"+in_file[len(in_file)-4:]
-      performConvert(in_file, image_format, out_file, convert_options)
+        performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
+   elif os.path.isfile(in_source):
+      if os.path.isdir(out_source):
+        out_source+=in_source[max(0, in_source.rfind('/')+1):len(in_source)-4]+"_new"+in_source[len(in_source)-4:]
+      performConvert(in_source, image_format, out_source, convert_options)
 
 
 
@@ -475,7 +475,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                except:
                    pass
             
-            if(".tmp" in splitLine[1:][0]) :
+            if(field_num=="4.009" or field_num=="14.999"):#.tmp" in splitLine[1:][0]) :
                print("Found image file "+splitLine[1:][0])
                splitLine[1:][0]=(splitLine[1:][0]).replace(".tmp", "."+image_format)
                new_val=(splitLine[1:][0]).replace(".tmp", "."+image_format)
