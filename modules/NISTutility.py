@@ -303,6 +303,23 @@ def getRecordCounts(fmt_file):
 def convertNIST(in_source, image_format, out_source, convert_options={}):
    loadConfig()
 
+   if in_source == ".":
+     in_source  = os.getcwd()+"/"
+   if out_source == "." or out_source == '':
+     out_source  = os.getcwd()+"/"
+
+   if in_source[0] != '/':
+     in_source  = os.getcwd()+"/"+in_source
+   if out_source[0] != '/':
+     out_source = os.getcwd()+"/"+out_source
+
+
+   if not os.path.isfile(in_source) and not os.path.isdir(in_source):
+      print("file '"+in_source+ "' does not exist!")
+      return
+
+
+
 #   in_file  = os.getcwd()+"/"+in_file
 #   out_file = os.getcwd()+"/"+out_file
 
@@ -312,7 +329,7 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
       print("In source '"+in_source+ "' does not exist!")
-      sys.exit(1)
+      return
 
    nist_files=[]
    if os.path.isdir(in_source):
@@ -351,7 +368,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
       os.makedirs(dir_path)
    else:   
       print("Directory "+dir_path+" already exists and cannot be removed")
-      sys.exit(1)
+      return
 
    os.chdir(dir_path) 
       
