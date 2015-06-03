@@ -20,6 +20,8 @@ import json
 import subprocess
 import numpy as np
 import magic
+import logging
+
 
 #NIST binary path
 root_path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+'/'
@@ -263,10 +265,10 @@ def getNumberOfRecords(fmt_file):
           if ref_num == "1.3.1.2":
              try:
                   number_of_records=int(field_val);
-                  print("Number of RECORDS = "+field_val);
+                  #print("Number of RECORDS = "+field_val);
                   return number_of_records;
              except:
-                  print("Error in Number of RECORDS field");
+                  #print("Error in Number of RECORDS field");
                   return -1;
    return 0
 
@@ -288,9 +290,10 @@ def getRecordCounts(fmt_file):
              if cur_rec_type == -1:
                 try:
                     cur_rec_type=int(field_val);
-                    print("Current record type is "+field_val);
+                    #print("Current record type is "+field_val);
                 except:
-                    print("Error in retrieving record type");
+                    #print("Error in retrieving record type");
+                    pass 
              else:
                 if str(cur_rec_type) in res:
                     res[str(cur_rec_type)]+=1
@@ -302,6 +305,28 @@ def getRecordCounts(fmt_file):
 
 def convertNIST(in_source, image_format, out_source, convert_options={}):
    loadConfig()
+   sys_logger = logging.getLogger('btu_application')
+   sys_logger.setLevel(logging.DEBUG)
+   # create file handler which logs even debug messages
+   fh = logging.FileHandler('biometric_transformation.log')
+   fh.setLevel(logging.DEBUG)
+
+   ch = logging.StreamHandler()
+   ch.setLevel(logging.ERROR)
+   # create formatter and add it to the handlers
+   formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+   ch.setFormatter(formatter)
+   fh.setFormatter(formatter)
+   # add the handlers to logger
+   sys_logger.addHandler(ch)
+   sys_logger.addHandler(fh)
+
+#logger.debug('debug message')
+#logger.info('info message')
+#logger.warn('warn message')
+#logger.error('error message')
+#logger.critical('critical message')
+
 
    if in_source == ".":
      in_source  = os.getcwd()+"/"
@@ -315,46 +340,66 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 
 
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
-      print("file '"+in_source+ "' does not exist!")
-      return
+      sys_logger.debug("file '"+in_source+ "' does not exist!")
+      return 
 
-
+   res_logger = logging.getLogger('BTU_RESULT')
+ 
+   print os.path.dirname(os.path.abspath(out_source))
+   fh = logging.FileHandler( os.path.dirname(os.path.abspath(out_source))+ '/results.log', mode='w')
+   fh.setLevel(logging.INFO)
+   ch = logging.StreamHandler()
+   ch.setLevel(logging.INFO)
+   # create formatter and add it to the handlers
+   formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+   ch.setFormatter(formatter)
+   fh.setFormatter(formatter)
+   # add the handlers to logger
+   res_logger.addHandler(ch)
+   res_logger.addHandler(fh)
 
 #   in_file  = os.getcwd()+"/"+in_file
 #   out_file = os.getcwd()+"/"+out_file
-
 #   if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
 #     print("Both <inputfile> and <outputfile> must be valid directories.")
 #     sys.exit(1)
 
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
-      print("In source '"+in_source+ "' does not exist!")
+      sys_logger.error("In source '"+in_source+ "' does not exist!")
       return
-
+   convert_options['sys_logger']=sys_logger;
+   convert_options['result_logger']=res_logger;
    nist_files=[]
    if os.path.isdir(in_source):
       nist_files += [each for each in os.listdir(in_source) if each.endswith('.eft') or each.endswith('an2')]
       for nist_file in nist_files:
-#   in_file_name=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]
-        performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
+        res=performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
+        if res == None:
+           res_logger.warn('Transformation of NIST file '+nist_file+ ' UNSUCCESSFUL')
+        else:
+           res_logger.warn('Transformation of NIST file '+nist_file+ ' COMPLETED SUCCESSFULLY and saved as' + res)
+            
    elif os.path.isfile(in_source):
       if os.path.isdir(out_source):
         out_source+=in_source[max(0, in_source.rfind('/')+1):len(in_source)-4]+"_new"+in_source[len(in_source)-4:]
-      performConvert(in_source, image_format, out_source, convert_options)
-
-
+      res=performConvert(in_source, image_format, out_source, convert_options)
+      if res == None:
+         res_logger.warn('Transformation of NIST file '+in_source+ ' UNSUCCESSFUL')
+      else:
+         res_logger.warn('Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res)
 
 
 
 
 def performConvert(in_file, image_format, out_file, convert_options={}):
+   sys_logger=convert_options['sys_logger'];
 
-   print("Input file is "+ in_file+" Image format is "+ image_format +" Output file is "+ out_file)
+   sys_logger.debug("Input file is "+ in_file+" Image format is "+ image_format +" Output file is "+ out_file)
    in_file_name=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]
 
    dir_path=in_file[0:len(in_file)-4]
    if os.path.exists(dir_path):
-      print("Attempting to clean/remove directory "+dir_path)
+      sys_logger.debug("Attempting to clean/remove directory "+dir_path)
       shutil.rmtree(dir_path)   
       try:
           os.system("rm *.tmp")
@@ -364,19 +409,23 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
    #Create output directory if does not exist (directory removal just attempted so should not exist unless permissions issue)
    if not os.path.exists(dir_path):
-      print("Creating directory "+dir_path)
+      sys_logger.debug("Creating directory "+dir_path)
       os.makedirs(dir_path)
    else:   
-      print("Directory "+dir_path+" already exists and cannot be removed")
-      return
+      sys_logger.error("Directory "+dir_path+" already exists and cannot be removed")
+      shutil.rmtree(dir_path)   
+      return None
 
    os.chdir(dir_path) 
       
    #Produce NIST formatted field and raw image output   
-   print("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
+   sys_logger.debug("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
    if (os.system(nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")<>0):
-     assert("fail - probably can't find %s"%nist_path+"an2k2txt")   
-   
+     sys_logger.error("fail - probably can't find %s"%nist_path+"an2k2txt")   
+     shutil.rmtree(dir_path)   
+     return None
+
+   sys_logger.debug('Transforming NIST file '+in_file)   
    
    records = {}
    header = {}
@@ -403,6 +452,12 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
         fmt_file_copy=fmt_file
         number_of_records = getNumberOfRecords(fmt_file);
         nist_record_count = getRecordCounts(fmt_file);
+ 
+        if number_of_records == -1 or len(nist_record_count) == 0:
+          sys_logger.error("NIST record count field extraction error.")   
+          shutil.rmtree(dir_path)   
+          return None
+
 
         if "14" in nist_record_count:
            type_14=1
@@ -417,8 +472,9 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
      number_of_fingers_to_include=len( convert_options['include_finger_index'])
 
 
-   print("NUMBER OF FINGERS TO INCLUDE "+str(len(convert_options['include_finger_index'])))
- 
+   sys_logger.debug("NUMBER OF FINGERS TO INCLUDE "+str(len(convert_options['include_finger_index'])))
+   converted_fingers = 0
+
    #Open txt field file and parse fields/records + update record values
    with open(dir_path+"/"+in_file_name+".fmt", 'rw') as fmt_file:
 
@@ -446,17 +502,14 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             if(field_num in record_type_1_to_map):
                header[record_type_1_to_map[field_num]]=field_val 
 
-            print("Field number is "+field_num +" Reference number is "+ref_num +" field value is "+field_val)
+            sys_logger.debug("Field number is "+field_num +" Reference number is "+ref_num +" field value is "+field_val)
 
             if(field_num in x_dim_fields):
                img_x=int(field_val)
                img_y=-1
-           #    print("Found X-coordinate")
             
             if(field_num in y_dim_fields):
                img_y=int(field_val)
-           #    print("Found Y-coordinate")
-           # print(splitLine[1:][0])
             new_val=splitLine[1:][0]
 
             if ref_num in reference_replace_rules:
@@ -480,10 +533,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             
             if (field_num=="14.013" and type_14==1 or field_num=="4.004" and type_14==0) and field_val!="255":
                finger_index=int(field_val  )
-               print("Finger INDEX is "+str(finger_index))
+               sys_logger.debug("Finger INDEX is "+str(finger_index))
 
             if finger_index != -1 and "include_finger_index" in convert_options and finger_index not in convert_options['include_finger_index']:
-              print("SKIPPING index "+str(finger_index)+" " +str(convert_options))
+              sys_logger.debug("SKIPPING index "+str(finger_index)+" " +str(convert_options))
               continue
 
             if field_num=="4.008" or field_num=="14.011":   
@@ -493,7 +546,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                    pass
             
             if(field_num=="4.009" or field_num=="14.999"):#.tmp" in splitLine[1:][0]) :
-               print("Found image file "+splitLine[1:][0])
+               sys_logger.debug("Found image file "+splitLine[1:][0])
                splitLine[1:][0]=(splitLine[1:][0]).replace(".tmp", "."+image_format)
                new_val=(splitLine[1:][0]).replace(".tmp", "."+image_format)
                if(img_x!=-1 and img_y!=-1):
@@ -501,11 +554,11 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                      pass 
                   elif compression_algorithm==1:   
                                  #dwsq raw fld_8_9.tmp -raw
-                     print("dwsq tmp "+ field_val + " -raw " )   
-                     os.system("dwsq tmp "+ field_val + " -raw " )   
+                     sys_logger.debug(nist_path+"dwsq tmp "+ field_val + " -raw " )   
+                     os.system(nist_path+"dwsq tmp "+ field_val + " -raw " )   
 
                   img_type=magic.from_file(field_val, mime=True)
-                  print("IMAGE TYPE IS "+img_type)
+                  sys_logger.debug("IMAGE TYPE IS "+img_type)
 
 
                   if "application/octet-stream" in img_type:   
@@ -521,8 +574,8 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                   elif "image/jpeg" in img_type or "image/jpg" in img_type:
                     os.system("mv "+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
                   else:
-                    print("Unsupported image type for file "+field_val)
-                    continue
+                    sys_logger.error("Unsupported image type for file "+field_val)
+                    return None
 
                
                   #Extract minutiae and orientation flow information
@@ -535,8 +588,8 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                   
                   #valid and unused finger index: so add NFIQ dictionary
                   if finger_index > -1 and finger_index not in NFIQs.keys():
-    #                 print("NFIQ is "+nfiq)
-    #                 print("Finger index is "+str(finger_index))
+                     #print("NFIQ is "+nfiq)
+                     #print("Finger index is "+str(finger_index))
                      NFIQs[finger_index]=int(nfiq[0:len(nfiq)-1])
    
                   record_type="Unknown"
@@ -550,7 +603,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                                          "source agency":finger_source_agency, "capture date":finger_capture_date,
                                          "comment":finger_comment, "dpi":finger_dpi, "minutiae":getMinutiae("", field_val[0:len(field_val)-4]), "NFIQ":NFIQs[finger_index], "IDC":idc, 
                                         "Record type":record_type, "image":field_val[0:len(field_val)-3]+"jpg"}     
-                                         
+                  converted_fingers+=1                       
               #    print fingers[finger_index]
                                          
                   finger_dpi="" #"4.005":"IMAGE SCANNING RESOLUTION",                    "14.012":"BITS PER PIXEL",
@@ -578,6 +631,12 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             full_values.append(new_val)
 
         fmt_file.close()
+
+
+   if converted_fingers < len( convert_options['include_finger_index']):
+     sys_logger.error("Not enough fingers converted: converted="+str(converted_fingers) + " versus the required " + str(len( convert_options['include_finger_index'])))
+     shutil.rmtree(dir_path)   
+     return None
     
    #TODO: JA fix this    
    with open(dir_path+"/"+in_file_name+".new.fmt", 'w') as fmt_out_file:
@@ -586,10 +645,11 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    
    if out_file !='':         
       os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file) 
-      print(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
+      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
    else:         
       os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft") 
-      print(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
+      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
+      out_file="new.eft";
 
    #Cleanup images      
 #   os.system("rm *.tmp")
@@ -625,7 +685,9 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    
    os.chdir(root_path) 
 #   print json_dict
-   return json_dict 
+   shutil.rmtree(dir_path)   
+ 
+   return out_file 
 
 
 #valid image formats for transformation
