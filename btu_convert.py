@@ -84,7 +84,8 @@ def main(argv):
    if not os.path.isfile(in_file) and not os.path.isdir(in_file):
       print("file '"+in_file+ "' does not exist!")
       sys.exit(1)
-   convert_options={ 'include_finger_index':{1,2,3,4}   }
+ #  convert_options={ 'include_finger_index':{1,2,3,4}   }
+   convert_options={    }
    nu.convertNIST(in_file, out_format, out_file, convert_options)
 
 

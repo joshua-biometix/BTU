@@ -422,7 +422,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    sys_logger.debug("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
    if (os.system(nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")<>0):
      sys_logger.error("fail - probably can't find %s"%nist_path+"an2k2txt")   
-     shutil.rmtree(dir_path)   
+     #shutil.rmtree(dir_path)   
      return None
 
    sys_logger.debug('Transforming NIST file '+in_file)   
@@ -470,9 +470,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
    if "include_finger_index" in convert_options and finger_index not in convert_options['include_finger_index']:
      number_of_fingers_to_include=len( convert_options['include_finger_index'])
-
-
-   sys_logger.debug("NUMBER OF FINGERS TO INCLUDE "+str(len(convert_options['include_finger_index'])))
+     sys_logger.debug("NUMBER OF FINGERS TO INCLUDE "+str(len(convert_options['include_finger_index'])))
    converted_fingers = 0
 
    #Open txt field file and parse fields/records + update record values
@@ -604,7 +602,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                                          "comment":finger_comment, "dpi":finger_dpi, "minutiae":getMinutiae("", field_val[0:len(field_val)-4]), "NFIQ":NFIQs[finger_index], "IDC":idc, 
                                         "Record type":record_type, "image":field_val[0:len(field_val)-3]+"jpg"}     
                   converted_fingers+=1                       
-              #    print fingers[finger_index]
                                          
                   finger_dpi="" #"4.005":"IMAGE SCANNING RESOLUTION",                    "14.012":"BITS PER PIXEL",
                   finger_source_agency="" #      "14.004":"SOURCE AGENCY/ORI",
@@ -633,7 +630,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
         fmt_file.close()
 
 
-   if converted_fingers < len( convert_options['include_finger_index']):
+   if "include_finger_index" in convert_options and converted_fingers < len( convert_options['include_finger_index']):
      sys_logger.error("Not enough fingers converted: converted="+str(converted_fingers) + " versus the required " + str(len( convert_options['include_finger_index'])))
      shutil.rmtree(dir_path)   
      return None
