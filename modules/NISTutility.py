@@ -345,8 +345,7 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 
    res_logger = logging.getLogger('BTU_RESULT')
  
-   print os.path.dirname(os.path.abspath(out_source))
-   fh = logging.FileHandler( os.path.dirname(os.path.abspath(out_source))+ '/results.log', mode='w')
+   fh = logging.FileHandler( os.path.abspath(out_source)+ '/results.log', mode='w')
    fh.setLevel(logging.INFO)
    ch = logging.StreamHandler()
    ch.setLevel(logging.INFO)
@@ -371,7 +370,7 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
    convert_options['result_logger']=res_logger;
    nist_files=[]
    if os.path.isdir(in_source):
-      nist_files += [each for each in os.listdir(in_source) if each.endswith('.eft') or each.endswith('an2')]
+      nist_files += [each for each in os.listdir(in_source) if each.endswith('.eft') or each.endswith('an2') or each.endswith('nist') ]
       for nist_file in nist_files:
         res=performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_new"+nist_file[len(nist_file)-4:], convert_options)
         if res == None:
