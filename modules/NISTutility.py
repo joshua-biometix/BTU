@@ -313,11 +313,11 @@ def getRefVal(fmt_file, x_ref_num):
        field_val=(splitLine[1])[:len(splitLine[1])-2]
        new_val=(splitLine[1])
        if ref_num == x_ref_num:
-          print "XXXXXXXXXXXXXXXXXXXXX "+ref_num
-          print field_val
+          #print "XXXXXXXXXXXXXXXXXXXXX "+ref_num
+          #print field_val
           #field_val=new_val.replace(field_val, "X" * len(field_val))
           field_val="X" * len(field_val)
-          print field_val
+          #print field_val
           return field_val
    return ""
 
@@ -409,6 +409,7 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 
 def performConvert(in_file, image_format, out_file, convert_options={}):
    sys_logger=convert_options['sys_logger'];
+   res_logger=convert_options['result_logger'];
 
    sys_logger.debug("Input file is "+ in_file+" Image format is "+ image_format +" Output file is "+ out_file)
    in_file_name=in_file[max(0, in_file.rfind('/')+1):len(in_file)-4]
@@ -416,10 +417,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    dir_path=in_file[0:len(in_file)-4]
    if os.path.exists(dir_path):
       sys_logger.debug("Attempting to clean/remove directory "+dir_path)
-#      shutil.rmtree(dir_path)   
+      shutil.rmtree(dir_path)   
       try:
-#          os.system("rm *.tmp")
-#          os.removedirs(dir_path)
+          os.system("rm *.tmp")
+          os.removedirs(dir_path)
           pass
       except:
           pass
@@ -430,13 +431,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
       os.makedirs(dir_path)
    else:   
       sys_logger.error("Directory "+dir_path+" already exists and cannot be removed")
-#      shutil.rmtree(dir_path)   
       return None
 
    os.chdir(dir_path) 
 
-
-   
    #for ref_num in reference_replace_rules.keys():
    #  value = reference_replace_rules[ref_num]
    #  value = getRefVal(fmt_file, ref_num)
@@ -473,30 +471,40 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    finger_capture_date="" #        "14.005":"TENPRINT CAPTURE DATE",
    finger_comment=""      #           "14.020":"COMMENT",
    idc=""                # "14.002":"IMAGE DESIGNATION CHARACTER",
+   
 
+   #Open txt field file and parse fields/records + update record values
+   with open(dir_path+"/"+in_file_name+".fmt", 'rw') as fmt_file:
 
+        for line in fmt_file:
+            splitLine = line.split('=')
 
-   if out_file !='':
-      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
-      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
-   else:
-      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
-      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
-      out_file="new.eft";
+            ref_num=(splitLine[0])[:splitLine[0].find("[")-1]
+            field_num=((splitLine[0])[splitLine[0].find("["):]).replace('[','').replace(']','').strip(' \t\n\r')
+            field_val=(splitLine[1])[:len(splitLine[1])-2]
+            new_val=(splitLine[1])
+
+            if ref_num in reference_replace_rules:
+               value = reference_replace_rules[ref_num]
+               value = getRefVal(fmt_file, ref_num)
+               #new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
+               os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+               res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value) 
+               print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  
 
 
    #Open txt field file and get record counts/types
    with open(dir_path+"/"+in_file_name+".fmt", 'r') as fmt_file:
-        fmt_file_copy=fmt_file
+#        fmt_file_copy=fmt_file
         number_of_records = getNumberOfRecords(fmt_file);
+        fmt_file.seek(0)
         nist_record_count = getRecordCounts(fmt_file);
 
-        for ref_num in reference_replace_rules.keys():
-          value = reference_replace_rules[ref_num]
-          value = getRefVal(fmt_file, ref_num)
-          print(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+#        for ref_num in reference_replace_rules.keys():
+#          value = reference_replace_rules[ref_num]
+#          value = getRefVal(fmt_file, ref_num)
+#          print(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
          # raw_input
-          os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
     # break
 
  
@@ -512,8 +520,24 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
            type_14=0
 
    fmt_file.close()
-     
+
+
+   os.chdir(root_path)
+   shutil.rmtree(dir_path)
    return out_file 
+
+
+
+
+
+
+
+
+
+
+
+
+
    number_of_fingers_to_include=100
 
    if "include_finger_index" in convert_options and finger_index not in convert_options['include_finger_index']:
