@@ -493,8 +493,8 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                transformed=1  
 
    if transformed==0:
-     os.system("cp "+ +in_file+ " " + out_file)
-     res_logger.warn('No fields found for transformation") 
+     os.system("cp "+ in_file+ " " + out_file)
+     res_logger.warn("No fields found for transformation") 
 
 
    #Open txt field file and get record counts/types
