@@ -472,7 +472,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    finger_comment=""      #           "14.020":"COMMENT",
    idc=""                # "14.002":"IMAGE DESIGNATION CHARACTER",
    
-
+   transformed=0
    #Open txt field file and parse fields/records + update record values
    with open(dir_path+"/"+in_file_name+".fmt", 'rw') as fmt_file:
 
@@ -490,7 +490,11 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                #new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
                os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value) 
-               print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  
+               transformed=1  
+
+   if transformed==0:
+     os.system("cp "+ +in_file+ " " + out_file)
+     res_logger.warn('No fields found for transformation") 
 
 
    #Open txt field file and get record counts/types
