@@ -391,18 +391,18 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
       for nist_file in nist_files:
         res=performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_tfm"+nist_file[len(nist_file)-4:], convert_options)
         if res == None:
-           res_logger.warn('Transformation of NIST file '+nist_file+ ' UNSUCCESSFUL')
+           res_logger.warn('Transformation of NIST file '+nist_file+ ' UNSUCCESSFUL\r')
         else:
-           res_logger.warn('Transformation of NIST file '+nist_file+ ' COMPLETED SUCCESSFULLY and saved as' + res)
+           res_logger.warn('Transformation of NIST file '+nist_file+ ' COMPLETED SUCCESSFULLY and saved as' + res+'\r')
             
    elif os.path.isfile(in_source):
       if os.path.isdir(out_source):
         out_source+=in_source[max(0, in_source.rfind('/')+1):len(in_source)-4]+"_tfm"+in_source[len(in_source)-4:]
       res=performConvert(in_source, image_format, out_source, convert_options)
       if res == None:
-         res_logger.warn('Transformation of NIST file '+in_source+ ' UNSUCCESSFUL')
+         res_logger.warn('Transformation of NIST file '+in_source+ ' UNSUCCESSFUL\r\n')
       else:
-         res_logger.warn('Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res)
+         res_logger.warn('Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res+"\r")
 
 
 
@@ -488,13 +488,13 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                value = reference_replace_rules[ref_num]
                value = getRefVal(fmt_file, ref_num)
                #new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
-               os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
-               res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value) 
-               transformed=1  
+               os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + in_file)
+               res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r") 
+               transformed=1 
 
+   os.system("cp "+ in_file+ " " + out_file)
    if transformed==0:
-     os.system("cp "+ in_file+ " " + out_file)
-     res_logger.warn("No fields found for transformation") 
+     res_logger.warn("No fields found for transformation\r") 
 
 
    #Open txt field file and get record counts/types
