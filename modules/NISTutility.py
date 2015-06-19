@@ -488,12 +488,15 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                value = reference_replace_rules[ref_num]
                value = getRefVal(fmt_file, ref_num)
                #new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
-               os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + in_file)
+               if transformed == 0:
+                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+               else: 
+                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r") 
                transformed=1 
 
-   os.system("cp "+ in_file+ " " + out_file)
    if transformed==0:
+     os.system("cp "+ in_file+ " " + out_file)
      res_logger.warn("No fields found for transformation\r") 
 
 
