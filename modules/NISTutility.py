@@ -155,9 +155,10 @@ def loadConfig():
                 replaced_optional_fields[value]=1
               elif field == "DELETE-OPTIONAL-RECORDS":
                 deleted_optional_fields[value]=1
-              elif field == "DATE-REF":
-                date_refs[value]=1
-                print "JJJJJJJJJJJJJ " +str(value)
+              elif field == "DATE-REFS":
+                 splitted_vals = value.split(',')
+                 for val in splitted_vals:
+                   date_refs[val]=1 
               else:
                 if getFieldDescription(field) != None: 
                   field_replace_rules[field]=value
