@@ -113,7 +113,10 @@ finger_position_codes={"0":"UNKNOWN",
 reference_replace_rules={}
 field_replace_rules={}
 
-excluded_optional_fields={}
+replaced_optional_fields={}
+deleted_optional_fields={}
+
+date_refs={}
 
 #define X-Y coordinate NIST fields
 
@@ -148,8 +151,13 @@ def loadConfig():
               field = splitted_line[0].strip(' \t\n\r');
               value = splitted_line[1].strip(' \t\n\r');
 
-              if field == "EXCLUDE-OPTIONAL-RECORDS":
-                excluded_optional_fields[value]=1
+              if field == "REPLACE-OPTIONAL-RECORDS":
+                replaced_optional_fields[value]=1
+              elif field == "DELETE-OPTIONAL-RECORDS":
+                deleted_optional_fields[value]=1
+              elif field == "DATE-REF":
+                date_refs[value]=1
+                print "JJJJJJJJJJJJJ " +str(value)
               else:
                 if getFieldDescription(field) != None: 
                   field_replace_rules[field]=value
@@ -321,7 +329,10 @@ def getRefVal(fmt_file, x_ref_num):
           #print "XXXXXXXXXXXXXXXXXXXXX "+ref_num
           #print field_val
           #field_val=new_val.replace(field_val, "X" * len(field_val))
-          field_val="X" * len(field_val)
+          if ref_num in date_refs.keys():
+            field_val="20000101"
+          else:
+            field_val="X" * len(field_val)
           #print field_val
           return field_val
    return ""
@@ -499,7 +510,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r") 
                transformed=1 
 
-            elif ref_num[0] in excluded_optional_fields and field_num not in record_type_2_to_map.keys():
+            elif ref_num[0] in replaced_optional_fields and field_num not in record_type_2_to_map.keys():
                value = getRefVal(fmt_file, ref_num)
                if transformed == 0:
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
@@ -507,6 +518,16 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r")
                transformed=1
+
+            elif ref_num[0] in deleted_optional_fields and field_num not in record_type_2_to_map.keys():
+               value = getRefVal(fmt_file, ref_num)
+               if transformed == 0:
+                 os.system(nist_path+"an2ktool -delete "+ref_num + " " +in_file+ " " + out_file)
+               else:
+                 os.system(nist_path+"an2ktool -delete "+ref_num + " " +out_file+ " " + out_file)
+               res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r")
+               transformed=1
+
 
 
 
