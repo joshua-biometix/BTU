@@ -113,6 +113,7 @@ finger_position_codes={"0":"UNKNOWN",
 reference_replace_rules={}
 field_replace_rules={}
 
+excluded_optional_fields={}
 
 #define X-Y coordinate NIST fields
 
@@ -143,13 +144,17 @@ def loadConfig():
         for line in fh.readlines():
             splitted_line = line.split('=')
             if len(splitted_line) == 2: 
+ 
               field = splitted_line[0].strip(' \t\n\r');
               value = splitted_line[1].strip(' \t\n\r');
 
-              if getFieldDescription(field) != None: 
-                field_replace_rules[field]=value
+              if field == "EXCLUDE-OPTIONAL-RECORDS":
+                excluded_optional_fields[value]=1
               else:
-                reference_replace_rules[field]=value
+                if getFieldDescription(field) != None: 
+                  field_replace_rules[field]=value
+                else:
+                  reference_replace_rules[field]=value
 
 
 
@@ -487,13 +492,23 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             if ref_num in reference_replace_rules:
                value = reference_replace_rules[ref_num]
                value = getRefVal(fmt_file, ref_num)
-               #new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
                if transformed == 0:
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
                else: 
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r") 
                transformed=1 
+
+            elif ref_num[0] in excluded_optional_fields and field_num not in record_type_2_to_map.keys():
+               value = getRefVal(fmt_file, ref_num)
+               if transformed == 0:
+                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+               else:
+                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
+               res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r")
+               transformed=1
+
+
 
    if transformed==0:
      os.system("cp "+ in_file+ " " + out_file)
