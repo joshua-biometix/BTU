@@ -165,7 +165,8 @@ def loadConfig():
                 else:
                   reference_replace_rules[field]=value
 
-
+        print "adasd "+str(field_replace_rules)
+        print "adasd "+str(reference_replace_rules)
 
 
 def getMinutiae(path, finger_name):
@@ -317,24 +318,39 @@ def getRecordCounts(fmt_file):
    return res
 
 
-#Returns the number of non Type 1 records in the fmt file fmt_file
+#Returns the new field value
 def getRefVal(fmt_file, x_ref_num):
    fmt_file.seek(0)
    for line in fmt_file:
        splitLine = line.split('=')
        ref_num=(splitLine[0])[:splitLine[0].find("[")-1]
-       field_num=((splitLine[0])[splitLine[0].find("["):]).replace('[','').replace(']','').strip(' \t\n\r')
+       rec_num=((splitLine[0])[splitLine[0].find("["):]).replace('[','').replace(']','').strip(' \t\n\r')
        field_val=(splitLine[1])[:len(splitLine[1])-2]
-       new_val=(splitLine[1])
+       orig_val = field_val
+
        if ref_num == x_ref_num:
-          #print "XXXXXXXXXXXXXXXXXXXXX "+ref_num
-          #print field_val
-          #field_val=new_val.replace(field_val, "X" * len(field_val))
+          print "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
+          print "Field Record is "+rec_num
+          print "Reference is "+ref_num
+          print "val is "+field_val
+
+          print "Reference keys " +str(reference_replace_rules.keys())
+          print "Field keys " +str(field_replace_rules.keys())
           if ref_num in date_refs.keys():
             field_val="20000101"
+          elif rec_num in reference_replace_rules.keys():
+            print "REF NUM IN REPLACE RULES "+ref_num
+            if reference_replace_rules[rec_num].strip(' \t\n\r')!="":
+              field_val=reference_replace_rules[rec_num]
+
+          elif ref_num in field_replace_rules.keys():
+            print "FIELD NUM IN REPLACE RULES "+field_num
+            if field_replace_rules[ref_num].strip(' \t\n\r')!="":
+              field_val=field_replace_rules[ref_num]
           else:
             field_val="X" * len(field_val)
-          #print field_val
+          if field_val == orig_val:
+            return None
           return field_val
    return ""
 
@@ -501,9 +517,13 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             field_val=(splitLine[1])[:len(splitLine[1])-2]
             new_val=(splitLine[1])
 
+            value = getRefVal(fmt_file, ref_num)
+            if value == None:
+              continue;
+
             if ref_num in reference_replace_rules:
-               value = reference_replace_rules[ref_num]
-               value = getRefVal(fmt_file, ref_num)
+               #value = reference_replace_rules[ref_num]
+
                if transformed == 0:
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
                else: 
@@ -512,7 +532,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                transformed=1 
 
             elif ref_num[0] in replaced_optional_fields and field_num not in record_type_2_to_map.keys():
-               value = getRefVal(fmt_file, ref_num)
                if transformed == 0:
                  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
                else:
@@ -521,7 +540,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                transformed=1
 
             elif ref_num[0] in deleted_optional_fields and field_num not in record_type_2_to_map.keys():
-               value = getRefVal(fmt_file, ref_num)
                if transformed == 0:
                  os.system(nist_path+"an2ktool -delete "+ref_num + " " +in_file+ " " + out_file)
                else:
