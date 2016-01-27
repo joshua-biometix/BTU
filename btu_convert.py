@@ -17,6 +17,7 @@ import sys
 import getopt
 import shutil
 import modules.NISTutility as nu
+import json
 
 #NIST binary path
 nist_path="bin/"
@@ -36,9 +37,9 @@ def main(argv):
    except getopt.GetoptError:
       print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
       sys.exit(2)
-   print opts   
+   #print opts   
    for opt, arg in opts:
-      print arg 
+      #print arg 
       if opt == '-h':
          print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
          sys.exit(1)
@@ -48,7 +49,7 @@ def main(argv):
          out_format = arg
       elif opt in ("-o", "--ofile"):
          out_file = arg
-   print argv            
+   #print argv            
    if(not out_format in valid_image_formats):
       print("Invalid image format "+ out_format)
       sys.exit(1);
@@ -86,8 +87,8 @@ def main(argv):
       sys.exit(1)
  #  convert_options={ 'include_finger_index':{1,2,3,4}   }
    convert_options={    }
-   nu.convertNIST(in_file, out_format, out_file, convert_options)
-
+   result=nu.convertNIST(in_file, out_format, out_file, convert_options)
+   print json.dumps(result)
 
 if __name__ == "__main__":
    try:

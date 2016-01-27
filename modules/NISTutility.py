@@ -165,8 +165,8 @@ def loadConfig():
                 else:
                   reference_replace_rules[field]=value
 
-        print "adasd "+str(field_replace_rules)
-        print "adasd "+str(reference_replace_rules)
+        #print "adasd "+str(field_replace_rules)
+        #print "adasd "+str(reference_replace_rules)
 
 
 def getMinutiae(path, finger_name):
@@ -329,22 +329,22 @@ def getRefVal(fmt_file, x_ref_num):
        orig_val = field_val
 
        if ref_num == x_ref_num:
-          print "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
-          print "Field Record is "+rec_num
-          print "Reference is "+ref_num
-          print "val is "+field_val
+          #print "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
+          #print "Field Record is "+rec_num
+          #print "Reference is "+ref_num
+          #print "val is "+field_val
 
-          print "Reference keys " +str(reference_replace_rules.keys())
-          print "Field keys " +str(field_replace_rules.keys())
+          #print "Reference keys " +str(reference_replace_rules.keys())
+          #print "Field keys " +str(field_replace_rules.keys())
           if ref_num in date_refs.keys():
             field_val="20000101"
           elif rec_num in reference_replace_rules.keys():
-            print "REF NUM IN REPLACE RULES "+ref_num
+            #print "REF NUM IN REPLACE RULES "+ref_num
             if reference_replace_rules[rec_num].strip(' \t\n\r')!="":
               field_val=reference_replace_rules[rec_num]
 
           elif ref_num in field_replace_rules.keys():
-            print "FIELD NUM IN REPLACE RULES "+field_num
+            #print "FIELD NUM IN REPLACE RULES "+field_num
             if field_replace_rules[ref_num].strip(' \t\n\r')!="":
               field_val=field_replace_rules[ref_num]
           else:
@@ -359,6 +359,7 @@ def getRefVal(fmt_file, x_ref_num):
 
 def convertNIST(in_source, image_format, out_source, convert_options={}):
    loadConfig()
+   json_result={}
    sys_logger = logging.getLogger('btu_application')
    sys_logger.setLevel(logging.DEBUG)
    # create file handler which logs even debug messages
@@ -389,7 +390,8 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
       sys_logger.debug("file '"+in_source+ "' does not exist!")
-      return 
+      json_result['result']="file '"+in_source+ "' does not exist!"
+      return json_result
 
    res_logger = logging.getLogger('BTU_RESULT')
    if os.path.isdir(in_source): 
@@ -414,8 +416,10 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 #     sys.exit(1)
 
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
+      json_result['result']="file '"+in_source+ "' does not exist!"
       sys_logger.error("In source '"+in_source+ "' does not exist!")
-      return
+      return json_result
+
    convert_options['sys_logger']=sys_logger;
    convert_options['result_logger']=res_logger;
    nist_files=[]
@@ -434,9 +438,11 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
       res=performConvert(in_source, image_format, out_source, convert_options)
       if res == None:
          res_logger.warn('Transformation of NIST file '+in_source+ ' UNSUCCESSFUL\r\n')
+         json_result['result']='Transformation of NIST file '+in_source+ ' UNSUCCESSFUL\r\n'
       else:
          res_logger.warn('Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res+"\r")
-
+         json_result['result']='Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res+"\r"
+   return json_result
 
 
 
@@ -452,7 +458,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
       sys_logger.debug("Attempting to clean/remove directory "+dir_path)
       shutil.rmtree(dir_path)   
       try:
-          os.system("rm *.tmp")
+          #os.system("rm *.tmp")
+
+          with open(os.devnull, 'wb') as devnull:
+            proc = subprocess.call(["rm", '*.tmp'], stdout=devnull, stderr=devnull)
           os.removedirs(dir_path)
           pass
       except:
@@ -476,12 +485,23 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
     # break
       
    #Produce NIST formatted field and raw image output   
-   sys_logger.debug("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
-   print("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
-   if (os.system(nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")<>0):
-     sys_logger.error("fail - probably can't find %s"%nist_path+"an2k2txt or CORRUPTED NIST FILE...")   
-     #shutil.rmtree(dir_path)   
-     return None
+#   sys_logger.debug("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
+   #print("Running "+nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt")
+
+   with open(os.devnull, 'wb') as devnull:
+      proc = subprocess.call([nist_path+"an2k2txt", in_file ,dir_path+"/"+in_file_name+".fmt"], stdout=devnull, stderr=devnull)
+
+#      proc = subprocess.Popen([nist_path+"an2k2txt", in_file ,dir_path+"/"+in_file_name+".fmt"], stdout=devnull, stderr=devnull)
+#      o, e=proc.communicate()
+      #print o
+      #print e
+#      proc = subprocess.check_call([nist_path+"an2k2txt", in_file +" "+dir_path+"/"+in_file_name+".fmt "], stdout=devnull, stderr=devnull)
+
+
+#   if (os.system(nist_path+"an2k2txt "+in_file+ " "+dir_path+"/"+in_file_name+".fmt" + " > /dev/null 2>&1")<>0):
+#     sys_logger.error("fail - probably can't find %s"%nist_path+"an2k2txt or CORRUPTED NIST FILE...")   
+#     shutil.rmtree(dir_path)   
+#     return None
 
    sys_logger.debug('Transforming NIST file '+in_file)   
    
@@ -523,30 +543,45 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
             if ref_num in reference_replace_rules:
                #value = reference_replace_rules[ref_num]
-
+               print 'ZZZZZDDDDDDDDDDDDDDDDDD' 
                if transformed == 0:
-                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-substitute' ,ref_num,str(value),in_file,out_file], stdout=devnull, stderr=devnull)
+               #  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
                else: 
-                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-substitute' ,ref_num,str(value),out_file,out_file], stdout=devnull, stderr=devnull)
+               #  os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r") 
+               #print "ZZZZZZ"
                transformed=1 
 
             elif ref_num[0] in replaced_optional_fields and field_num not in record_type_2_to_map.keys():
                if transformed == 0:
-                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+                 #os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-substitute' ,ref_num,str(value),in_file,out_file], stdout=devnull, stderr=devnull)
                else:
-                 os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
+                 #os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-substitute' ,ref_num,str(value),out_file,out_file], stdout=devnull, stderr=devnull)
+
+
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r")
                transformed=1
 
             elif ref_num[0] in deleted_optional_fields and field_num not in record_type_2_to_map.keys():
                if transformed == 0:
-                 os.system(nist_path+"an2ktool -delete "+ref_num + " " +in_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-delete' ,ref_num,in_file,out_file], stdout=devnull, stderr=devnull)
+#                 os.system(nist_path+"an2ktool -delete "+ref_num + " " +in_file+ " " + out_file)
                else:
-                 os.system(nist_path+"an2ktool -delete "+ref_num + " " +out_file+ " " + out_file)
+                 #os.system(nist_path+"an2ktool -delete "+ref_num + " " +out_file+ " " + out_file)
+                 with open(os.devnull, 'wb') as devnull:
+                   proc = subprocess.call([nist_path+"an2ktool", '-delete' ,ref_num,out_file,out_file], stdout=devnull, stderr=devnull)
+
                res_logger.warn('Replacing field '+field_num +" value "+field_val + " with " +value +"\r")
                transformed=1
-
 
 
 
@@ -585,19 +620,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
 
    os.chdir(root_path)
-   shutil.rmtree(dir_path)
-   return out_file 
+   #shutil.rmtree(dir_path)
+   #return out_file 
 
-
-
-
-
-
-
-
-
-
-
+   #JA: BREAKPOINT
 
 
    number_of_fingers_to_include=100
@@ -692,24 +718,37 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                   elif compression_algorithm==1:   
                                  #dwsq raw fld_8_9.tmp -raw
                      sys_logger.debug(nist_path+"dwsq tmp "+ field_val + " -raw " )   
-                     os.system(nist_path+"dwsq tmp "+ field_val + " -raw " )   
+                     #os.system(nist_path+"dwsq tmp "+ field_val + " -raw " )   
 
-                  img_type=magic.from_file(field_val, mime=True)
-                  sys_logger.debug("IMAGE TYPE IS "+img_type)
+                     with open(os.devnull, 'wb') as devnull:
+                       proc = subprocess.call([nist_path+"dwsq", 'tmp' ,field_val,'-raw'], stdout=devnull, stderr=devnull)
+
+
+                  m=magic.open(magic.MAGIC_MIME)
+                  m.load()
+#                  print field_val
+                  img_type=m.file(dir_path+"/"+field_val)#, mime=True)
+                  sys_logger.debug("IMAGE TYPE IS "+str(img_type))
 
 
                   if "application/octet-stream" in img_type:   
-                    print("rawtopgm "+str(img_x)+ " "+str(img_y) + " "+ dir_path+'/'+field_val + " > " + field_val[0:len(field_val)-3]+"pgm")   
+                    #print("rawtopgm "+str(img_x)+ " "+str(img_y) + " "+ dir_path+'/'+field_val + " > " + field_val[0:len(field_val)-3]+"pgm")   
+#                    with open(os.devnull, 'wb') as devnull:
+#                       proc = subprocess.call(["rawtopgm", str(img_x), str(img_y), dir_path+'/'+field_val,'> '+ field_val[0:len(field_val)-3]+"pgm"], stdout=devnull, stderr=devnull)
+
                     os.system("rawtopgm "+str(img_x)+ " "+str(img_y) +" "+ dir_path+'/'+field_val + " > " + field_val[0:len(field_val)-3]+"pgm")   
-                    print("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+"jpg")
+                    #print("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+image_format)
+                    pass
                   elif "image/tiff" in img_type or "image/png" in img_type or "image/x-portable-greymap" in img_type:
                     print("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+image_format)
+                    pass
                   elif "image/jpeg" in img_type or "image/jpg" in img_type:
                     os.system("mv "+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
+                    pass
                   else:
                     sys_logger.error("Unsupported image type for file "+field_val)
                     return None
@@ -768,7 +807,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
         fmt_file.close()
 
-
    if "include_finger_index" in convert_options and converted_fingers < len( convert_options['include_finger_index']):
      sys_logger.error("Not enough fingers converted: converted="+str(converted_fingers) + " versus the required " + str(len( convert_options['include_finger_index'])))
      shutil.rmtree(dir_path)   
@@ -780,10 +818,16 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
             fmt_out_file.write(full_records[i]+"="+full_values[i])
    
    if out_file !='':         
-      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file) 
+      with open(os.devnull, 'wb') as devnull:
+        proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,out_file], stdout=devnull, stderr=devnull)
+
+      #os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file   ) 
       sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
-   else:         
-      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft") 
+   else: 
+      with open(os.devnull, 'wb') as devnull:
+        proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,"new.eft"], stdout=devnull, stderr=devnull)
+  
+#      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft" ) 
       sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
       out_file="new.eft";
 
@@ -840,16 +884,16 @@ def main(argv):
          out_file = arg
    print argv            
    if(not out_format in valid_image_formats):
-      print("Invalid image format "+ out_format)
+      #print("Invalid image format "+ out_format)
       sys.exit(1);
        
        
    if(len(in_file)<4 or in_file[len(in_file)-4:]!=".eft"):
-      print("Incorrect file format: " + in_file[len(in_file)-4:])
+      #print("Incorrect file format: " + in_file[len(in_file)-4:])
       sys.exit(1)
       
    if not os.path.isfile(in_file):
-      print("file '"+in_file+ "' does not exist!")
+      #print("file '"+in_file+ "' does not exist!")
       sys.exit(1)
    convertNIST(in_file, out_format, out_file)
 
