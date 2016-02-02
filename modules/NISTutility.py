@@ -21,7 +21,7 @@ import subprocess
 import numpy as np
 import magic
 import logging
-
+import base64
 
 #NIST binary path
 root_path=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+'/'
@@ -414,7 +414,8 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
 #   if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
 #     print("Both <inputfile> and <outputfile> must be valid directories.")
 #     sys.exit(1)
-
+   NFIQs={}
+   minutiae={}
    if not os.path.isfile(in_source) and not os.path.isdir(in_source):
       json_result['result']="file '"+in_source+ "' does not exist!"
       sys_logger.error("In source '"+in_source+ "' does not exist!")
@@ -426,7 +427,7 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
    if os.path.isdir(in_source):
       nist_files += [each for each in os.listdir(in_source) if each.endswith('.eft') or each.endswith('an2') or each.endswith('nist') ]
       for nist_file in nist_files:
-        res=performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_tfm"+nist_file[len(nist_file)-4:], convert_options)
+        res, NFIQs, minutiae, images=performConvert(in_source+'/'+nist_file, image_format, out_source+'/'+nist_file[max(0, nist_file.rfind('/')+1):len(nist_file)-4]+"_tfm"+nist_file[len(nist_file)-4:], convert_options)
         if res == None:
            res_logger.warn('Transformation of NIST file '+nist_file+ ' UNSUCCESSFUL\r')
         else:
@@ -435,13 +436,18 @@ def convertNIST(in_source, image_format, out_source, convert_options={}):
    elif os.path.isfile(in_source):
       if os.path.isdir(out_source):
         out_source+=in_source[max(0, in_source.rfind('/')+1):len(in_source)-4]+"_tfm"+in_source[len(in_source)-4:]
-      res=performConvert(in_source, image_format, out_source, convert_options)
+      res, NFIQs, minutiae, images=performConvert(in_source, image_format, out_source, convert_options)
       if res == None:
          res_logger.warn('Transformation of NIST file '+in_source+ ' UNSUCCESSFUL\r\n')
          json_result['result']='Transformation of NIST file '+in_source+ ' UNSUCCESSFUL\r\n'
       else:
          res_logger.warn('Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res+"\r")
          json_result['result']='Transformation of NIST file '+in_source+ ' COMPLETED SUCCESSFULLY and saved as ' + res+"\r"
+
+   json_result["NFIQ"]=NFIQs
+   json_result["minutiae"]=minutiae
+   json_result["images"]=images
+   json_result["transformed_file"]=res
    return json_result
 
 
@@ -473,7 +479,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
       os.makedirs(dir_path)
    else:   
       sys_logger.error("Directory "+dir_path+" already exists and cannot be removed")
-      return None
+      return None, None, None, None
 
    os.chdir(dir_path) 
 
@@ -508,6 +514,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    records = {}
    header = {}
    NFIQs={}
+   images={}
    minutiae={}
    full_records = [] 
    full_values = [] 
@@ -597,18 +604,10 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
         fmt_file.seek(0)
         nist_record_count = getRecordCounts(fmt_file);
 
-#        for ref_num in reference_replace_rules.keys():
-#          value = reference_replace_rules[ref_num]
-#          value = getRefVal(fmt_file, ref_num)
-#          print(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +in_file+ " " + out_file)
-         # raw_input
-    # break
-
- 
         if number_of_records == -1 or len(nist_record_count) == 0:
           sys_logger.error("NIST record count field extraction error.")   
           shutil.rmtree(dir_path)   
-          return None
+          return None, None, None, None
 
 
         if "14" in nist_record_count:
@@ -620,11 +619,6 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
 
 
    os.chdir(root_path)
-   #shutil.rmtree(dir_path)
-   #return out_file 
-
-   #JA: BREAKPOINT
-
 
    number_of_fingers_to_include=100
 
@@ -740,33 +734,37 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
                     #print("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100 "+field_val[0:len(field_val)-3]+"pgm"+ " " + field_val[0:len(field_val)-3]+image_format)
-                    pass
                   elif "image/tiff" in img_type or "image/png" in img_type or "image/x-portable-greymap" in img_type:
-                    print("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
+                    #print("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
                     os.system("convert -quality 100  "+ dir_path+'/'+field_val + " " + field_val[0:len(field_val)-3]+image_format)
-                    pass
                   elif "image/jpeg" in img_type or "image/jpg" in img_type:
                     os.system("mv "+field_val + " " + field_val[0:len(field_val)-3]+"jpg")
-                    pass
                   else:
                     sys_logger.error("Unsupported image type for file "+field_val)
-                    return None
+                    return None, None, None, None
+                  if 'get_images' in convert_options.keys() and convert_options['get_images']==1:
+                    with open(field_val[0:len(field_val)-3]+"jpg", "rb") as image_file:
+                      encoded_image=base64.b64encode(image_file.read())
 
+                    images[field_val]=encoded_image
+
+
+                  if 'get_features' in convert_options.keys() and convert_options['get_features']==1:  
                
-                  #Extract minutiae and orientation flow information
-                  #os.system(nist_path+"mindtct  -b  -m1 "+field_val[0:len(field_val)-3]+"jpg" +" "+field_val[0:len(field_val)-4]) 
-                  #minutiae[field_val[0:len(field_val)-4]]=getMinutiae("", field_val[0:len(field_val)-4])
+                    #Extract minutiae and orientation flow information
+                    os.system(nist_path+"mindtct  -b  -m1 "+field_val[0:len(field_val)-3]+"jpg" +" "+field_val[0:len(field_val)-4]) 
+                    minutiae[field_val[0:len(field_val)-4]]=getMinutiae("", field_val[0:len(field_val)-4])
 
-                  #Extract NFIQ score
-                  #proc = subprocess.Popen([nist_path+"nfiq -d "+ field_val[0:len(field_val)-3]+"jpg" ], stdout=subprocess.PIPE, shell=True)
-                  #(nfiq, err) = proc.communicate()
+                    #Extract NFIQ score
+                    proc = subprocess.Popen([nist_path+"nfiq -d "+ field_val[0:len(field_val)-3]+"jpg" ], stdout=subprocess.PIPE, shell=True)
+                    (nfiq, err) = proc.communicate()
                   
-                  #valid and unused finger index: so add NFIQ dictionary
-                  #if finger_index > -1 and finger_index not in NFIQs.keys():
-                     #print("NFIQ is "+nfiq)
-                     #print("Finger index is "+str(finger_index))
-                  #   NFIQs[finger_index]=int(nfiq[0:len(nfiq)-1])
+                    #valid and unused finger index: so add NFIQ dictionary
+                    if finger_index > -1 and finger_index not in NFIQs.keys():
+                       #print("NFIQ is "+nfiq)
+                       #print("Finger index is "+str(finger_index))
+                       NFIQs[finger_index]=int(nfiq[0:len(nfiq)-1])
    
                   record_type="Unknown"
                   if type_14==1:
@@ -810,26 +808,27 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    if "include_finger_index" in convert_options and converted_fingers < len( convert_options['include_finger_index']):
      sys_logger.error("Not enough fingers converted: converted="+str(converted_fingers) + " versus the required " + str(len( convert_options['include_finger_index'])))
      shutil.rmtree(dir_path)   
-     return None
+     return None, None, None, None
     
    #TODO: JA fix this    
    with open(dir_path+"/"+in_file_name+".new.fmt", 'w') as fmt_out_file:
          for i in range(0,len(full_records)):
             fmt_out_file.write(full_records[i]+"="+full_values[i])
-   
-   if out_file !='':         
-      with open(os.devnull, 'wb') as devnull:
-        proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,out_file], stdout=devnull, stderr=devnull)
+  
+   if 'transform' in convert_options.keys() and convert_options['transform']==1:
+     if out_file !='':         
+       with open(os.devnull, 'wb') as devnull:
+         proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,out_file], stdout=devnull, stderr=devnull)
 
-      #os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file   ) 
-      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
-   else: 
-      with open(os.devnull, 'wb') as devnull:
-        proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,"new.eft"], stdout=devnull, stderr=devnull)
+       #os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file   ) 
+       sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+out_file)
+     else: 
+       with open(os.devnull, 'wb') as devnull:
+         proc = subprocess.call([nist_path+"txt2an2k", dir_path+"/"+in_file_name+".new.fmt" ,"new.eft"], stdout=devnull, stderr=devnull)
   
 #      os.system(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft" ) 
-      sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
-      out_file="new.eft";
+       sys_logger.debug(nist_path+"txt2an2k "+dir_path+"/"+in_file_name+".new.fmt" +" "+"new.eft")
+       out_file="new.eft";
 
  
 #   json_dict={"Header":header, "NFIQ":NFIQs, "Records": records, "Minutiae": minutiae, "Type 1 Def":record_type_1_to_map, 
@@ -841,69 +840,16 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
         json.dump(json_dict, outfile)
    
    os.chdir(root_path) 
-#   print json_dict
    shutil.rmtree(dir_path)   
 
-#   for ref_num in reference_replace_rules.keys():
-#     value = reference_replace_rules[ref_num]
-#     print(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file)
-    # os.system(nist_path+"an2ktool -delete "+ref_num + "  " +out_file+ " " + out_file )
-#     os.system(nist_path+"an2ktool -substitute "+ref_num + " "+str(value)+" " +out_file+ " " + out_file )
-
-#            if field_num in field_replace_rules:
-#              new_val = field_replace_rules[field_num]+(splitLine[1])[len(splitLine[1])-2:]
- 
-   return out_file 
+   out_file_data={}
+   if 'transform' in convert_options.keys() and convert_options['transform']==1:
+     with open(out_file, "rb") as o_file:
+       out_file_data=base64.b64encode(o_file.read())
+   return out_file_data, NFIQs, minutiae, images 
 
 
 #valid image formats for transformation
 valid_image_formats=["jpg", "jpeg", "bmp", "png", "wsq", "tiff", "tmp"]
 
     
-def main(argv):
-   in_file = ''
-   out_format = ''
-   out_file=''
-   opts=[]   
-   try:
-      opts, args = getopt.getopt(argv,"hi:f:o:",["ifile=","ofile=","format="])
-   except getopt.GetoptError:
-      print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
-      sys.exit(2)
-   print opts   
-   for opt, arg in opts:
-      print arg 
-      if opt == '-h':
-         print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
-         sys.exit(1)
-      elif opt in ("-i", "--ifile"):
-         in_file = arg
-      elif opt in ("-f", "--format"):
-         out_format = arg
-      elif opt in ("-o", "--ofile"):
-         out_file = arg
-   print argv            
-   if(not out_format in valid_image_formats):
-      #print("Invalid image format "+ out_format)
-      sys.exit(1);
-       
-       
-   if(len(in_file)<4 or in_file[len(in_file)-4:]!=".eft"):
-      #print("Incorrect file format: " + in_file[len(in_file)-4:])
-      sys.exit(1)
-      
-   if not os.path.isfile(in_file):
-      #print("file '"+in_file+ "' does not exist!")
-      sys.exit(1)
-   convertNIST(in_file, out_format, out_file)
-
-
-if __name__ == "__main__":
-   try:
-      opts, args = getopt.getopt(sys.argv,"hi:f:o:",["ifile=","ofile=","format="])
-      print args
-   except getopt.GetoptError: 
-      pass    
-   main(sys.argv[1:])
-
-

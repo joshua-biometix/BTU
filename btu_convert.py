@@ -18,6 +18,8 @@ import getopt
 import shutil
 import modules.NISTutility as nu
 import json
+import tempfile
+import base64
 
 #NIST binary path
 nist_path="bin/"
@@ -32,63 +34,36 @@ def main(argv):
    out_format = ''
    out_file=''
    opts=[]   
+
+
    try:
-      opts, args = getopt.getopt(argv,"hi:f:o:",["ifile=","ofile=","format="])
-   except getopt.GetoptError:
-      print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
-      sys.exit(2)
-   #print opts   
-   for opt, arg in opts:
-      #print arg 
-      if opt == '-h':
-         print 'convert_NIST_finger.py -i <inputfile> -f <format> [-o <outputfile>]'
-         sys.exit(1)
-      elif opt in ("-i", "--ifile"):
-         in_file = arg
-      elif opt in ("-f", "--format"):
-         out_format = arg
-      elif opt in ("-o", "--ofile"):
-         out_file = arg
-   #print argv            
-   if(not out_format in valid_image_formats):
-      print("Invalid image format "+ out_format)
-      sys.exit(1);
-       
-       
-   #if(len(in_file)<4 or in_file[len(in_file)-4:]!=".eft"):
-   #   print("Incorrect file format: " + in_file[len(in_file)-4:])
-   #   sys.exit(1)
-
-   if  in_file == out_file:
-     print("File/Path <inputfile> and <outputfile> must be different.")
+     with open(sys.argv[1]) as json_settings_file:
+       json_settings=json.load(json_settings_file)
+   except:
      sys.exit(1)
-
-
-
-   if os.path.isdir(in_file) and out_file !='' and not os.path.isdir(out_file) or not os.path.isdir(in_file) and out_file !='' and os.path.isdir(out_file):
-     print("Both <inputfile> and <outputfile> must be valid directories. out_file is "+out_file)
-     sys.exit(1)
-
-   if in_file == ".":
-     in_file  = os.getcwd()+"/"
-   if out_file == "." or out_file=='':
-     out_file  = os.getcwd()+"/"
-
-   if in_file[0] != '/':
-     in_file  = os.getcwd()+"/"+in_file
-   if out_file[0] != '/':
-     out_file = os.getcwd()+"/"+out_file
 
    
+   in_file_data = base64.b64decode(json_settings['nist_file'])
+   in_file=tempfile.NamedTemporaryFile(delete=False) 
+   try:
+     in_file.write(in_file_data)
+   except:
+     in_file.close()
+     os.unlink(in_file.name)
+     sys.exit(1)
 
-      
-   if not os.path.isfile(in_file) and not os.path.isdir(in_file):
-      print("file '"+in_file+ "' does not exist!")
-      sys.exit(1)
- #  convert_options={ 'include_finger_index':{1,2,3,4}   }
-   convert_options={    }
-   result=nu.convertNIST(in_file, out_format, out_file, convert_options)
+
+   #Modes: get_features, get_images, get
+   convert_options=json_settings['btu_settings']
+   out_file=tempfile.NamedTemporaryFile(delete=False)
+
+   in_file.close()
+   out_file.close()
+   result=nu.convertNIST(in_file.name, out_format, out_file.name, convert_options)
    print json.dumps(result)
+   os.unlink(in_file.name)
+   os.unlink(out_file.name)
+
 
 if __name__ == "__main__":
    try:
