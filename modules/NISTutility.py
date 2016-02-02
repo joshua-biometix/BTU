@@ -842,7 +842,7 @@ def performConvert(in_file, image_format, out_file, convert_options={}):
    os.chdir(root_path) 
    shutil.rmtree(dir_path)   
 
-   out_file_data={}
+   out_file_data=None
    if 'transform' in convert_options.keys() and convert_options['transform']==1:
      with open(out_file, "rb") as o_file:
        out_file_data=base64.b64encode(o_file.read())
